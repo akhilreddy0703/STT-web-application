@@ -1,0 +1,78 @@
+.container {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .tabs {
+    background-color: #f3f4f6;
+    border-radius: 8px;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .tab {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .tab:hover {
+    background-color: #e5e7eb;
+  }
+  
+  .tab.active {
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .button {
+    background-color: #3b82f6;
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .button:hover {
+    background-color: #2563eb;
+  }
+  
+  .input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
+  
+  .checkbox {
+    margin-right: 0.5rem;
+  }
+  
+  .transcription-area {
+    background-color: #f3f4f6;
+    border-radius: 4px;
+    padding: 1rem;
+    min-height: 100px;
+    margin-bottom: 1rem;
+  }
+  
+  .metadata {
+    background-color: #f3f4f6;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
