@@ -13,12 +13,14 @@ const TranscriptionUI = () => {
   const [serverStats, setServerStats] = useState(null);
   const [ws, setWs] = useState(null);
   const [activeTab, setActiveTab] = useState('file');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
 
   useEffect(() => {
-    fetchMetadataAndStats();
+    fetchInitialMetadataAndStats();
   }, []);
 
-  const fetchMetadataAndStats = async () => {
+  const fetchInitialMetadataAndStats = async () => {
     try {
       const [metadataResponse, statsResponse] = await Promise.all([
         getServerMetadata(),
@@ -27,19 +29,41 @@ const TranscriptionUI = () => {
       setServerMetadata(metadataResponse);
       setServerStats(statsResponse);
     } catch (error) {
-      console.error('Error fetching metadata and stats:', error);
+      console.error('Error fetching initial metadata and stats:', error);
     }
   };
 
-  const handleFileUpload = async (event) => {
+  const fetchUpdatedMetadataAndStats = async () => {
+    try {
+      const [metadataResponse, statsResponse] = await Promise.all([
+        getServerMetadata(),
+        getServerStats()
+      ]);
+      setServerMetadata(metadataResponse);
+      setServerStats(statsResponse);
+    } catch (error) {
+      console.error('Error fetching updated metadata and stats:', error);
+    }
+  };
+
+  const handleFileSelection = (event) => {
     const file = event.target.files[0];
     if (file) {
+      setSelectedFile(file);
+      setFileTranscription('');
+      setFileMetadata(null);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (selectedFile) {
+      setIsTranscribing(true);
+      setFileTranscription('Transcribing...');
+      setFileMetadata(null);
+      
       try {
-        setFileTranscription('');
-        setFileMetadata(null);
-        
         if (useStreaming) {
-          const reader = await transcribeFile(file, true, prompt);
+          const reader = await transcribeFile(selectedFile, true, prompt);
           const decoder = new TextDecoder();
           while (true) {
             const { done, value } = await reader.read();
@@ -48,7 +72,7 @@ const TranscriptionUI = () => {
             setFileTranscription(prev => prev + chunk);
           }
         } else {
-          const result = await transcribeFile(file, false, prompt);
+          const result = await transcribeFile(selectedFile, false, prompt);
           setFileTranscription(result.transcription);
           setFileMetadata({
             language: result.language,
@@ -57,10 +81,12 @@ const TranscriptionUI = () => {
             audio_duration: result.audio_duration
           });
         }
-        fetchMetadataAndStats();
+        fetchUpdatedMetadataAndStats();
       } catch (error) {
         console.error('Error transcribing file:', error);
         setFileTranscription('Error transcribing file. Please try again.');
+      } finally {
+        setIsTranscribing(false);
       }
     }
   };
@@ -83,7 +109,7 @@ const TranscriptionUI = () => {
       stopLiveTranscription(ws);
       setWs(null);
       setIsRecording(false);
-      fetchMetadataAndStats();
+      fetchUpdatedMetadataAndStats();
     }
   };
 
@@ -98,8 +124,7 @@ const TranscriptionUI = () => {
         <div className="card">
           <h2>Upload Audio File</h2>
           <div className="input-group">
-            <input type="file" onChange={handleFileUpload} accept="audio/*" className="input" />
-            <button className="button">Upload</button>
+            <input type="file" onChange={handleFileSelection} accept="audio/*" className="input" />
           </div>
           <div className="checkbox-group">
             <input type="checkbox" id="streaming" checked={useStreaming} onChange={(e) => setUseStreaming(e.target.checked)} />
@@ -112,6 +137,13 @@ const TranscriptionUI = () => {
             onChange={(e) => setPrompt(e.target.value)}
             className="input"
           />
+          <button 
+            onClick={handleSubmit} 
+            className="button" 
+            disabled={!selectedFile || isTranscribing}
+          >
+            {isTranscribing ? 'Transcribing...' : 'Start Transcription'}
+          </button>
           <div className="transcription-area">
             {fileTranscription}
           </div>
@@ -142,7 +174,7 @@ const TranscriptionUI = () => {
           <h2>Server Information</h2>
           {serverMetadata && (
             <div className="metadata">
-              <h3>Metadata:</h3>
+              <h3>Server Metadata:</h3>
               <p>Model ID: {serverMetadata.model_id}</p>
               <p>Backend: {serverMetadata.backend}</p>
               <p>Device: {serverMetadata.device}</p>
@@ -151,7 +183,7 @@ const TranscriptionUI = () => {
           )}
           {serverStats && (
             <div className="metadata">
-              <h3>Stats:</h3>
+              <h3>Server Statistics:</h3>
               <p>Total Requests: {serverStats.total_requests}</p>
               <p>Total Audio Duration: {serverStats.total_audio_duration.toFixed(2)}s</p>
               <p>Total Inference Time: {serverStats.total_inference_time.toFixed(2)}s</p>

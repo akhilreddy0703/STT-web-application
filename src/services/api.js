@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://10.216.176.120:8000';
 
 export const transcribeFile = async (file, stream = false, prompt = '') => {
   const formData = new FormData();
@@ -33,7 +33,7 @@ export const transcribeFile = async (file, stream = false, prompt = '') => {
 };
 
 export const startLiveTranscription = async (onMessage, onError) => {
-  const ws = new WebSocket(`ws://localhost:8000/v1/live_transcription`);
+  const ws = new WebSocket(`ws://10.216.176.120:8000/v1/live_transcription`);
 
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
