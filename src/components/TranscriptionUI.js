@@ -15,6 +15,7 @@ const TranscriptionUI = () => {
   const [activeTab, setActiveTab] = useState('file');
   const [selectedFile, setSelectedFile] = useState(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [streamingWords, setStreamingWords] = useState([]);
 
   useEffect(() => {
     fetchInitialMetadataAndStats();
@@ -52,14 +53,16 @@ const TranscriptionUI = () => {
       setSelectedFile(file);
       setFileTranscription('');
       setFileMetadata(null);
+      setStreamingWords([]);
     }
   };
 
   const handleSubmit = async () => {
     if (selectedFile) {
       setIsTranscribing(true);
-      setFileTranscription('Transcribing...');
+      setFileTranscription('');
       setFileMetadata(null);
+      setStreamingWords([]);
       
       try {
         if (useStreaming) {
@@ -69,7 +72,20 @@ const TranscriptionUI = () => {
             const { done, value } = await reader.read();
             if (done) break;
             const chunk = decoder.decode(value);
-            setFileTranscription(prev => prev + chunk);
+            const lines = chunk.split('\n').filter(line => line.trim() !== '');
+            lines.forEach(line => {
+              if (line.startsWith('data: ')) {
+                const jsonStr = line.slice(6);
+                try {
+                  const data = JSON.parse(jsonStr);
+                  if (data.word) {
+                    setStreamingWords(prev => [...prev, data.word.trim()]);
+                  }
+                } catch (err) {
+                  console.error('Error parsing JSON:', err);
+                }
+              }
+            });
           }
         } else {
           const result = await transcribeFile(selectedFile, false, prompt);
@@ -93,16 +109,16 @@ const TranscriptionUI = () => {
 
   const toggleRecording = () => {
     if (!isRecording) {
-      const newWs = startLiveTranscription();
-      newWs.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        const words = data.words.map(w => w.word).join(' ');
-        setLiveTranscription(prev => prev + ' ' + words);
-      };
-      newWs.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setLiveTranscription('Error in live transcription. Please try again.');
-      };
+      const newWs = startLiveTranscription(
+        (data) => {
+          const words = data.words.map(w => w.word).join(' ');
+          setLiveTranscription(prev => prev + ' ' + words);
+        },
+        (error) => {
+          console.error('WebSocket error:', error);
+          setLiveTranscription('Error in live transcription. Please try again.');
+        }
+      );
       setWs(newWs);
       setIsRecording(true);
     } else {
@@ -145,9 +161,9 @@ const TranscriptionUI = () => {
             {isTranscribing ? 'Transcribing...' : 'Start Transcription'}
           </button>
           <div className="transcription-area">
-            {fileTranscription}
+            {useStreaming ? streamingWords.join(' ') : fileTranscription}
           </div>
-          {fileMetadata && (
+          {fileMetadata && !useStreaming && (
             <div className="metadata">
               <h3>Transcription Metadata:</h3>
               <p>Language: {fileMetadata.language}</p>
